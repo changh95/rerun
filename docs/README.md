@@ -1,28 +1,27 @@
-This is the high-level documentation for Rerun that is hosted at https://www.rerun.io/docs
+Rerun의 상위 문서는 https://www.rerun.io/docs에서 호스팅됩니다.
 
-## Other documentation
-API-level documentation is built from source-code. Python lives at [rerun_py](https://github.com/rerun-io/rerun/tree/main/rerun_py) and Rust in the individual [crates](https://github.com/rerun-io/rerun/tree/main/crates).
+## 기타 문서
+API 수준의 문서는 소스 코드에서 빌드됩니다. Python은 [rerun_py](https://github.com/rerun-io/rerun/tree/main/rerun_py)에 있고 Rust는 개별 [crates](https://github.com/rerun-io/rerun/tree/main/crates)에 있습니다.
 
-## Contributions
+## 기여
 
-Contributions are welcome via pull-request. Note that even landed PRs will not deploy to the main site
-until the next time we roll out a site-update. We will generally to do this at least once per release.
+기여는 pull-request를 통해 환영합니다. 착륙한 PR도 다음 사이트 업데이트를 롤아웃할 때까지 메인 사이트에 배포되지 않습니다. 일반적으로 릴리스당 최소 한 번은 이를 수행합니다.
 
-## Organization
+## 조직
 
-The site documentation lives in Markdown files inside [`/content`](./content).
+사이트 문서는 [`/content`](./content) 내부의 Markdown 파일에 있습니다.
 
-The entry point to the documentation is [`/content/index.md`](./content/index.md).
+문서의 진입점은 [`/content/index.md`](./content/index.md)입니다.
 
-## Updating the docs
+## 문서 업데이트
 
-The `rerun.io` docs are built from the contents of the `/docs` directory on the `docs-latest` branch. Any push to `docs-latest` will trigger an automatic redeploy of the website.
+`rerun.io` 문서는 `docs-latest` 브랜치의 `/docs` 디렉토리 내용에서 빌드됩니다. `docs-latest`에 대한 모든 푸시는 웹사이트의 자동 재배포를 트리거합니다.
 
-Do not push directly to the `docs-latest` branch! To update the docs, either [create a Release](../RELEASES.md), or cherry-pick commits to the `docs-latest` branch _after_ they've been committed to `main`.
+`docs-latest` 브랜치에 직접 푸시하지 마십시오! 문서를 업데이트하려면 [Release 생성](../RELEASES.md)을 하거나 커밋이 `main`에 커밋된 후 `docs-latest` 브랜치에 체리픽하십시오.
 
-⚠ Any commits which are not on `main` and were instead submitted directly to the `docs-latest` branch will be lost the next time we create a release, because the `docs-latest` branch is force-pushed during the release process.
+⚠ `main`에 없는 커밋은 `docs-latest` 브랜치에 직접 제출된 경우 릴리스 프로세스 중에 `docs-latest` 브랜치가 강제로 푸시되기 때문에 다음 릴리스를 생성할 때 손실됩니다.
 
-## Special syntax
+## 특수 구문
 
 ### Frontmatter
 

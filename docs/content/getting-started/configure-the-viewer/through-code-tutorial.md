@@ -1,18 +1,17 @@
 ---
-title: Configure the Viewer through code
+title: 코드를 통해 Viewer 구성하기
 order: 3
 ---
 
-This tutorial will walk you through using the
-[Blueprint APIs](../../howto/configure-viewer-through-code.md) to better control
-the layout and appearance of your data in the Rerun Viewer in Python.
+이 튜토리얼은 Python에서 Rerun Viewer의 데이터 레이아웃과 외관을 더 잘 제어하기 위해
+[Blueprint APIs](../../howto/configure-viewer-through-code.md)를 사용하는 방법을 안내합니다.
 
-This walkthrough is based on the [stock charts](https://github.com/rerun-io/rerun/tree/main/examples/python/blueprint_stocks) example.
-The main differences between this tutorial and the linked example are related to additional processing of
-command-line flags, which are omitted here for simplicity.
+이 안내는 [주식 차트](https://github.com/rerun-io/rerun/tree/main/examples/python/blueprint_stocks) 예제를 기반으로 합니다.
+이 튜토리얼과 링크된 예제의 주요 차이점은 명령줄 플래그의 추가 처리와 관련이 있으며,
+여기서는 단순화를 위해 생략되었습니다.
 
-All of the examples in this tutorial use the exact same data. However, by changing the blueprint using
-small statements such as:
+이 튜토리얼의 모든 예제는 정확히 동일한 데이터를 사용합니다. 그러나 다음과 같은 작은 문장을 사용하여 blueprint를 변경함으로써:
+
 ```python
 rrb.Blueprint(
     rrb.Vertical(
@@ -22,14 +21,13 @@ rrb.Blueprint(
     )
 )
 ```
-we will completely change the way the data is presented.
+우리는 데이터가 표현되는 방식을 완전히 변경할 것입니다.
 
-## Create an environment for the example
+## 예제를 위한 환경 만들기
 
-We start by creating a new virtual environment and installing the Rerun SDK along with the dependencies
-we will use in this example.
+우리는 새로운 가상 환경을 만들고 Rerun SDK와 함께 이 예제에서 사용할 의존성들을 설치하는 것으로 시작합니다.
 
-On Linux or Mac:
+Linux나 Mac에서:
 
 ```bash
 mkdir stocks_example
@@ -39,7 +37,7 @@ source venv/bin/activate
 pip install rerun-sdk humanize yfinance
 ```
 
-On windows:
+Windows에서:
 
 ```bash
 mkdir stocks_example
@@ -49,11 +47,11 @@ python -m venv venv
 pip install rerun-sdk humanize yfinance
 ```
 
-## Create your script
+## 스크립트 생성하기
 
-In your project folder, add a new file, `stocks.py`.
+프로젝트 폴더에 새 파일 `stocks.py`를 추가합니다.
 
-First, we import the necessary libraries:
+먼저, 필요한 라이브러리들을 import합니다:
 
 ```python
 #!/usr/bin/env python3
@@ -67,7 +65,7 @@ import rerun as rr
 import rerun.blueprint as rrb
 ```
 
-Next, we create some helper functions for style data and a template for an info card:
+다음으로, 스타일 데이터를 위한 헬퍼 함수와 정보 카드를 위한 템플릿을 생성합니다:
 
 ```python
 brand_colors = {
@@ -111,47 +109,47 @@ def info_card(
     return rr.TextDocument(markdown, media_type=rr.MediaType.MARKDOWN)
 ```
 
-And finally, we create our main function that queries and logs the data:
+마지막으로, 데이터를 쿼리하고 로깅하는 main 함수를 생성합니다:
 
 ```python
 def main() -> None:
     symbols = ["AAPL", "AMZN", "GOOGL", "META", "MSFT"]
 
-    # Use eastern time for market hours
+    # 시장 시간이 동부 시간대를 사용합니다
     et_timezone = pytz.timezone("America/New_York")
     start_date = dt.date(2024, 3, 18)
     dates = [start_date + dt.timedelta(days=i) for i in range(5)]
 
-    # Initialize Rerun and spawn a new viewer
+    # Rerun을 초기화하고 새로운 viewer를 생성합니다
     rr.init("rerun_example_blueprint_stocks", spawn=True)
 
-    # This is where we will edit the blueprint
+    # 여기서 blueprint를 편집할 것입니다
     blueprint = None
     #rr.send_blueprint(blueprint)
 
-    # Log the stock data for each symbol and date
+    # 각 심볼과 날짜에 대한 주식 데이터를 로깅합니다
     for symbol in symbols:
         stock = yf.Ticker(symbol)
 
-        # Log the stock info document as timeless
+        # 주식 정보 문서를 timeless로 로깅합니다
         rr.log(f"stocks/{symbol}/info", info_card(**stock.info), timeless=True)
 
         for day in dates:
-            # Log the styling data as timeless
+            # 스타일 데이터를 timeless로 로깅합니다
             rr.log(f"stocks/{symbol}/{day}", style_plot(symbol), timeless=True)
             rr.log(f"stocks/{symbol}/peaks/{day}", style_peak(symbol), timeless=True)
 
-            # Query the stock data during market hours
+            # 시장 시간 동안 주식 데이터를 쿼리합니다
             open_time = dt.datetime.combine(day, dt.time(9, 30), et_timezone)
             close_time = dt.datetime.combine(day, dt.time(16, 00), et_timezone)
 
             hist = stock.history(start=open_time, end=close_time, interval="5m")
 
-            # Offset the index to be in seconds since the market open
+            # 인덱스를 시장 개장 이후의 초 단위로 오프셋합니다
             hist.index = hist.index - open_time
             peak = hist.High.idxmax()
 
-            # Log the stock state over the course of the day
+            # 하루 동안의 주식 상태를 로깅합니다
             for row in hist.itertuples():
                 rr.set_time_seconds("time", row.Index.total_seconds())
                 rr.log(f"stocks/{symbol}/{day}", rr.Scalar(row.High))
@@ -161,18 +159,16 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-```
 
-## Run your script
+## 스크립트를 실행하세요
 
-You can now run the script and view the results in the Rerun Viewer:
+이제 스크립트를 실행하고 Rerun Viewer에서 결과를 볼 수 있습니다:
 
 ```bash
 python stocks.py
 ```
 
-You should see the application launch and display the stock data, but you will also notice the
-layout is far from ideal:
+애플리케이션이 시작되고 주식 데이터가 표시되는 것을 볼 수 있지만, 레이아웃이 이상적이지 않다는 것을 알 수 있습니다:
 
 <picture>
   <img src="https://static.rerun.io/blueprint_tutorial_no_blueprint/b7341f41683825f4186d661af509f8da03dc4ed1/full.png" alt="">
@@ -182,21 +178,21 @@ layout is far from ideal:
   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/blueprint_tutorial_no_blueprint/b7341f41683825f4186d661af509f8da03dc4ed1/1200w.png">
 </picture>
 
-## Create a blueprint
+## 블루프린트 생성
 
-To improve the layout, we will now use the blueprint APIs to create some custom layouts.
+레이아웃을 개선하기 위해 이제 블루프린트 API를 사용하여 사용자 정의 레이아웃을 생성할 것입니다.
 
-All we need to do is modify the section of the code that currently reads:
+우리가 해야 할 일은 현재 읽고 있는 코드 섹션을 수정하는 것입니다:
 
 ```python
-    # This is where we will edit the blueprint
+    # 여기서 블루프린트를 수정할 것입니다
     blueprint = None
     #rr.send_blueprint(blueprint)
 ```
 
-### Create a view for an origin
+### 원본에 대한 뷰 생성
 
-Replace these lines with the following:
+다음 줄을 다음으로 교체하세요:
 
 ```python
     # Create a single chart for all the AAPL data:
@@ -206,9 +202,9 @@ Replace these lines with the following:
     rr.send_blueprint(blueprint)
 ```
 
-This blueprint uses the `origin` parameter to scope the view to just a portion of the entity tree.
+이 블루프린트는 `origin` 매개변수를 사용하여 엔티티 트리의 특정 부분만 뷰에 포함시킵니다.
 
-If you run the script again, you should see a single chart for the AAPL data:
+스크립트를 다시 실행하면 AAPL 데이터에 대한 단일 차트를 볼 수 있습니다:
 
 <picture>
   <img src="https://static.rerun.io/blueprint_tutorial_one_stock/bda8f536306f9d9eb1b2aafe8bd8aceb746c2e0c/full.png" alt="">
@@ -218,15 +214,14 @@ If you run the script again, you should see a single chart for the AAPL data:
   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/blueprint_tutorial_one_stock/bda8f536306f9d9eb1b2aafe8bd8aceb746c2e0c/1200w.png">
 </picture>
 
-### Control the default panel state
+### 기본 패널 상태 제어
 
-In addition to controlling the data, you can also control the default state of the blueprint, selection,
-and time panels.
+데이터를 제어하는 것 외에도 blueprint, selection, 그리고 time 패널의 기본 상태를 제어할 수 있습니다.
 
-Let's modify the code again to include additional blueprint specifications for these:
+이러한 추가적인 blueprint 사양을 포함하도록 코드를 다시 수정해 보겠습니다:
 
 ```python
-    # Create a single chart for all the AAPL data, and collapse the selection and time panels:
+    # AAPL 데이터에 대한 단일 차트를 생성하고, 선택 및 시간 패널을 접습니다:
     blueprint = rrb.Blueprint(
         rrb.TimeSeriesView(name="AAPL", origin="/stocks/AAPL"),
         rrb.BlueprintPanel(state="expanded"),
@@ -236,8 +231,7 @@ Let's modify the code again to include additional blueprint specifications for t
     rr.send_blueprint(blueprint)
 ```
 
-This time when you run the script, you will now see the panels start off collapsed, giving you a
-more focused view of your data:
+이번에 스크립트를 실행하면 패널들이 처음에 접혀있는 상태로 시작되어, 데이터에 대해 더 집중된 뷰를 제공합니다:
 
 <picture>
   <img src="https://static.rerun.io/blueprint_tutorial_one_stock_hide_panels/41d3f42d2e33bcaec33b27e98752eddb17352c0f/full.png" alt="">
@@ -247,16 +241,16 @@ more focused view of your data:
   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/blueprint_tutorial_one_stock_hide_panels/41d3f42d2e33bcaec33b27e98752eddb17352c0f/1200w.png">
 </picture>
 
-### Combining multiple views
+### 여러 뷰 결합하기
 
-When using blueprints, you don't have to limit yourself to a single view. You can create multiple views
-and use containers to combine them.
+blueprint를 사용할 때, 단일 뷰로 제한할 필요가 없습니다. 여러 뷰를 생성하고
+컨테이너를 사용하여 이들을 결합할 수 있습니다.
 
-Let's modify the code to include the info card as well. We will use the `Vertical` container and the
-`row_shares` parameter to control the relative size of the views:
+info 카드도 포함하도록 코드를 수정해 보겠습니다. `Vertical` 컨테이너와
+`row_shares` 매개변수를 사용하여 뷰의 상대적 크기를 제어할 것입니다:
 
 ```python
-    # Create a vertical layout of an info document and a time series chart
+    # info 문서와 시계열 차트의 수직 레이아웃 생성
     blueprint = rrb.Blueprint(
         rrb.Vertical(
             rrb.TextDocumentView(name="Info", origin="/stocks/AAPL/info"),
@@ -270,7 +264,7 @@ Let's modify the code to include the info card as well. We will use the `Vertica
     rr.send_blueprint(blueprint)
 ```
 
-Running the script now produces two views stacked vertically:
+이제 스크립트를 실행하면 두 개의 뷰가 수직으로 쌓인 형태로 나타납니다:
 
 <picture>
   <img src="https://static.rerun.io/blueprint_tutorial_one_stock_and_info/9fbf481aaf9da399718d8afb9f64b9364bb34268/full.png" alt="">
@@ -280,16 +274,14 @@ Running the script now produces two views stacked vertically:
   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/blueprint_tutorial_one_stock_and_info/9fbf481aaf9da399718d8afb9f64b9364bb34268/1200w.png">
 </picture>
 
-### Including specific contents
+### 특정 내용 포함하기
 
-Specifying the `origin` of a view is convenient, but sometimes you need more control. In this case, you can
-specify the `contents` of a view by providing multiple content expressions.
+뷰의 `origin`을 지정하는 것은 편리하지만, 때로는 더 많은 제어가 필요합니다. 이 경우, 여러 개의 content 표현식을 제공하여 뷰의 `contents`를 지정할 수 있습니다.
 
-For example, we can create a stock that includes data from both META and MSFT for a single day on
-the same chart. Using `origin` alone there is no way we could have expressed this:
+예를 들어, 단일 차트에 META와 MSFT 두 회사의 하루 데이터를 포함하는 주식 차트를 만들 수 있습니다. `origin`만 사용해서는 이를 표현할 방법이 없습니다:
 
 ```python
-    # Create a view with two stock time series
+    # 두 개의 주식 시계열을 가진 뷰 생성
     blueprint = rrb.Blueprint(
         rrb.TimeSeriesView(
             name="META vs MSFT",
@@ -305,7 +297,7 @@ the same chart. Using `origin` alone there is no way we could have expressed thi
     rr.send_blueprint(blueprint)
 ```
 
-Running the script now produces a chart that combines data from multiple sources:
+이제 스크립트를 실행하면 여러 소스의 데이터를 결합한 차트가 생성됩니다:
 
 <picture>
   <img src="https://static.rerun.io/blueprint_tutorial_comare_two/0ac7d7d02bebb433828aec16a085716951740dff/full.png" alt="">
@@ -315,19 +307,18 @@ Running the script now produces a chart that combines data from multiple sources
   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/blueprint_tutorial_comare_two/0ac7d7d02bebb433828aec16a085716951740dff/1200w.png">
 </picture>
 
-### More complex filtering
+### 더 복잡한 필터링
 
-Just specifying single path inclusions can also be challenging when dealing datasets that
-include large subtrees.
+단일 경로 포함만 지정하는 것은 대규모 하위 트리를 포함하는 데이터셋을 다룰 때 어려울 수 있습니다.
 
-Filter expressions can be used to include or exclude data based on a path pattern. This pattern can optionally
-start with `$origin` to refer to the origin of the given space, and can end with the wildcard `/**` to include
-or exclude an entire subtree,
+필터 표현식을 사용하여 경로 패턴을 기반으로 데이터를 포함하거나 제외할 수 있습니다. 이 패턴은 선택적으로
+`$origin`으로 시작하여 주어진 공간의 원점을 참조할 수 있으며, 와일드카드 `/**`로 끝나 전체 하위 트리를
+포함하거나 제외할 수 있습니다.
 
-Going back to our single stock example, we can filter out the peaks data by excluding the `peaks` subtree:
+단일 주식 예제로 돌아가서, `peaks` 하위 트리를 제외함으로써 peaks 데이터를 필터링할 수 있습니다:
 
 ```python
-    # Create a single chart for all the AAPL data and filter out the peaks:
+    # AAPL의 모든 데이터에 대한 단일 차트를 생성하고 peaks를 필터링합니다:
     blueprint = rrb.Blueprint(
         rrb.TimeSeriesView(
             name="AAPL",
@@ -344,7 +335,7 @@ Going back to our single stock example, we can filter out the peaks data by excl
     rr.send_blueprint(blueprint)
 ```
 
-When you run the script you will see that the data from the peaks subtree is no longer part of the view:
+스크립트를 실행하면 peaks 하위 트리의 데이터가 더 이상 뷰에 포함되지 않은 것을 볼 수 있습니다:
 
 <picture>
   <img src="https://static.rerun.io/blueprint_tutorial_one_stock_no_peaks/d53c5294e3ee118c5037d1b3480176ef49cb2071/full.png" alt="">
@@ -354,15 +345,15 @@ When you run the script you will see that the data from the peaks subtree is no 
   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/blueprint_tutorial_one_stock_no_peaks/d53c5294e3ee118c5037d1b3480176ef49cb2071/1200w.png">
 </picture>
 
-### Programmatic layouts
+### 프로그래매틱 레이아웃
 
-Since these layouts are created by executing Python code, they can also be generated programmatically.
+이러한 레이아웃은 Python 코드를 실행하여 생성되므로 프로그래매틱하게 생성할 수도 있습니다.
 
-For example, we can create a create a separate view for every piece of data we were interested in.
-Setting this up by hand would be extremely tedious.
+예를 들어, 우리가 관심 있는 모든 데이터에 대해 별도의 뷰를 생성할 수 있습니다.
+이를 수동으로 설정하는 것은 매우 지루할 것입니다.
 
 ```python
-    # Iterate over all the symbols and days to log the stock data in a grid
+    # 모든 심볼과 날짜를 반복하여 주식 데이터를 그리드에 기록합니다
     blueprint = rrb.Blueprint(
         rrb.Vertical(
             contents=[
@@ -392,7 +383,7 @@ Setting this up by hand would be extremely tedious.
     rr.send_blueprint(blueprint)
 ```
 
-Running the script again this final chart is a significant improvement over the original heuristic-based layout:
+스크립트를 다시 실행하면 이 최종 차트가 원래의 휴리스틱 기반 레이아웃에 비해 크게 개선된 것을 볼 수 있습니다:
 
 <picture>
   <img src="https://static.rerun.io/blueprint_tutorial_grid/b9c41481818f9028d75df6076c62653989a02c66/full.png" alt="">
@@ -402,8 +393,8 @@ Running the script again this final chart is a significant improvement over the 
   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/blueprint_tutorial_grid/b9c41481818f9028d75df6076c62653989a02c66/1200w.png">
 </picture>
 
-### Visualizers and overrides
+### 시각화 도구 및 오버라이드
 
-<!-- TODO(ab): the linked section's content is already pretty rich, but, ideally, this section should also include code examples -->
+<!-- TODO(ab): 연결된 섹션의 내용이 이미 꽤 풍부하지만, 이상적으로는 이 섹션에도 코드 예제가 포함되어야 합니다 -->
 
-Since release 0.17, even deeper configurations from code are possible. This includes overriding component values for a given view entity, specifying default values for components for a given view, and controlling which visualizer(s) are used per view entity. See [Visualizers and Overrides](../../concepts/visualizers-and-overrides.md) for more information and code examples.
+0.17 릴리스 이후로 코드를 통한 더 깊은 구성이 가능해졌습니다. 여기에는 주어진 뷰 엔티티에 대한 컴포넌트 값 오버라이드, 주어진 뷰에 대한 컴포넌트의 기본값 지정, 그리고 뷰 엔티티별로 사용되는 시각화 도구를 제어하는 것이 포함됩니다. 자세한 정보와 코드 예제는 [시각화 도구 및 오버라이드](../../concepts/visualizers-and-overrides.md)를 참조하세요.

@@ -1,60 +1,47 @@
 ---
-title: Batch Data
+title: 배치 데이터
 order: 700
 ---
 
-Rerun has built-in support for batch data. Whenever you have a collection of things that all have the same type, rather
-than logging each element individually, you can log the entire collection together as a single "Batch". This provides
-significant benefits in terms of storage and compute.
+Rerun은 배치 데이터에 대한 기본 지원을 제공합니다. 동일한 유형의 항목 모음이 있을 때마다 각 요소를 개별적으로 기록하는 대신 전체 모음을 단일 "배치"로 함께 기록할 수 있습니다. 이는 저장소 및 컴퓨팅 측면에서 상당한 이점을 제공합니다.
 
-Some examples of batched data include points in a point cloud, bounding boxes for detected objects, tracked keypoints
-in a skeleton, or a collection of line strips.
+배치 데이터의 몇 가지 예로는 포인트 클라우드의 포인트, 감지된 객체의 경계 상자, 스켈레톤의 추적된 키포인트 또는 선 스트립 모음이 있습니다.
 
-In the Python APIs, the majority of archetypes are named with the plural form, for example [`rr.Points3D`](https://ref.rerun.io/docs/python/stable/common/archetypes/#rerun.archetypes.Points3D). They accept both single elements (internally treated as an N=1 batch) or arrays corresponding to the batches.
+Python API에서는 대부분의 아키타입이 복수형으로 명명되어 있습니다. 예를 들어 [`rr.Points3D`](https://ref.rerun.io/docs/python/stable/common/archetypes/#rerun.archetypes.Points3D)와 같습니다. 이들은 단일 요소(내부적으로 N=1 배치로 처리됨) 또는 배치에 해당하는 배열을 모두 수용합니다.
 
-## Terminology
+## 용어
 
-- An *entity* is a collection of *components* (see [Entities and Components](entity-component.md)).
-- When an entity is batched, its components' individual elements are called *instances*.
-- When every instance within an entity shares the same value for a component, we say that this component is clamped. This
-  is a common pattern and has dedicated support for it (see the [Component Clamping](#component-clamping) section below).
-  For instance, you can set all the colors of a point cloud to the same color by passing a single color value to the
- `color` parameter.
-- During queries, a batch always has a *primary* component. The primary component is what determines
-  how many instances exist in the batch.
+- *엔티티*는 *구성 요소*의 모음입니다 (자세한 내용은 [엔티티 및 구성 요소](entity-component.md) 참조).
+- 엔티티가 배치될 때, 그 구성 요소의 개별 요소를 *인스턴스*라고 합니다.
+- 엔티티 내의 모든 인스턴스가 구성 요소에 대해 동일한 값을 공유할 때, 이 구성 요소는 클램프되었다고 합니다. 이는 일반적인 패턴이며 이를 위한 전용 지원이 있습니다 (아래 [구성 요소 클램핑](#component-clamping) 섹션 참조).
+  예를 들어, 단일 색상 값을 `color` 매개변수에 전달하여 포인트 클라우드의 모든 색상을 동일한 색상으로 설정할 수 있습니다.
+- 쿼리 중에 배치는 항상 *주 구성 요소*를 가집니다. 주 구성 요소는 배치 내에 존재하는 인스턴스의 수를 결정합니다.
 
-## Restrictions
+## 제한 사항
 
-When using batched entities there are a few restrictions:
- - Because there is a one-to-one mapping between batches and entities:
-    - If data needs to span multiple entity paths, it needs to be split up into separate batches.
-    - If data needs to be split into multiple batches, each must be logged to a different path.
- - Whenever you log a batched entity, for any component that is updated, you must provide values for
-   every instance.
-    - It is not possible to only update a subset of the instances in the batch.
+배치된 엔티티를 사용할 때 몇 가지 제한 사항이 있습니다:
+ - 배치와 엔티티 간에는 일대일 매핑이 있기 때문에:
+    - 데이터가 여러 엔티티 경로에 걸쳐야 하는 경우, 별도의 배치로 나누어야 합니다.
+    - 데이터가 여러 배치로 나누어져야 하는 경우, 각 배치는 다른 경로에 기록되어야 합니다.
+ - 배치된 엔티티를 기록할 때, 업데이트되는 구성 요소에 대해 모든 인스턴스의 값을 제공해야 합니다.
+    - 배치 내의 인스턴스의 일부만 업데이트하는 것은 불가능합니다.
 
-## Batch join rules
+## 배치 병힙 규칙
 
-Rerun lets you choose which components in an entity you want to log at any point in time. If you don't log to a
-component, then in general it is not updated. For example, if you log a point cloud with positions and colors and then
-later log just new positions, when the Viewer displays that point cloud it will still look up the *last* colors that
-were logged (we refer to this as the *latest at* semantics).
+Rerun은 엔티티 내에서 언제든지 기록할 구성 요소를 선택할 수 있도록 합니다. 구성 요소에 기록하지 않으면 일반적으로 업데이트되지 않습니다. 예를 들어, 위치와 색상이 있는 포인트 클라우드를 기록한 후 나중에 새로운 위치만 기록하면, 뷰어가 해당 포인트 클라우드를 표시할 때 여전히 *마지막*으로 기록된 색상을 조회합니다 (이를 *최신 시점* 의미론이라고 합니다).
 
-This can be quite convenient since updating different components at different times puts far fewer restrictions on the
-organization of your code. It even means if a component on an entity is static, you only need to log it once.
+이는 서로 다른 구성 요소를 서로 다른 시간에 업데이트하는 것이 코드 조직에 대한 제한을 훨씬 줄여주기 때문에 매우 편리할 수 있습니다. 이는 엔티티의 구성 요소가 정적일 경우, 한 번만 기록하면 된다는 것을 의미합니다.
 
-However, if both a batch of colors and a batch of positions have been logged at two different points in time, we need a way
-to know which point receives which color.
-For that, Rerun uses the index of the instance.
-When querying a batched component, the component-values are joined together based on this index.
-Logically, this happens as a *left-join* using the primary component for the entity. For example, if you log 3
-points and then later log 5 colors, you will still only see 3 points in the viewer.
+그러나 색상 배치와 위치 배치가 두 개의 서로 다른 시점에서 기록된 경우, 어떤 포인트가 어떤 색상을 받는지 알아야 합니다.
+이를 위해 Rerun은 인스턴스의 인덱스를 사용합니다.
+배치된 구성 요소를 쿼리할 때, 구성 요소 값은 이 인덱스를 기반으로 결합됩니다.
+논리적으로, 이는 엔티티의 주 구성 요소를 사용하여 *왼쪽 조인*으로 발생합니다. 예를 들어, 3개의 포인트를 기록한 후 5개의 색상을 기록하면, 뷰어에서는 여전히 3개의 포인트만 볼 수 있습니다.
 
-What should happen if you have 5 points and 3 colors then? This is where clamping semantics come into play.
+그렇다면 5개의 포인트와 3개의 색상이 있는 경우에는 어떻게 해야 할까요? 여기서 클램핑 의미론이 작용합니다.
 
-## Component clamping
+## 구성 요소 클램핑
 
-As mentioned, Rerun has special semantics when joining batches of different sizes, for example this is what happens when you mix arrays and single values in an API call.
+앞서 언급했듯이, Rerun은 서로 다른 크기의 배치를 조인할 때 특별한 의미론을 가지고 있습니다. 예를 들어, API 호출에서 배열과 단일 값을 혼합할 때 발생하는 일입니다.
 
-If the component on the left-side of the join (the so-called primary component) has more instances than the other, then these tail values will simply be ignored.
-On the other hand, if the component on the left-side of the join (the so-called primary component) has less instances than the other, then the last instance will be repeated across every instance left in the batch. We call this clamping, in reference to texture sampling (think `CLAMP_TO_EDGE`!).
+조인의 왼쪽 구성 요소(소위 주 구성 요소)가 다른 구성 요소보다 더 많은 인스턴스를 가진 경우, 이러한 꼬리 값은 단순히 무시됩니다.
+반면, 조인의 왼쪽 구성 요소(소위 주 구성 요소)가 다른 구성 요소보다 더 적은 인스턴스를 가진 경우, 마지막 인스턴스는 배치에 남아 있는 모든 인스턴스에 걸쳐 반복됩니다. 우리는 이를 클램핑이라고 부르며, 이는 텍스처 샘플링을 참조합니다 (예: `CLAMP_TO_EDGE`!).
